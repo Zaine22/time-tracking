@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  STAFF
+  ACCOUNTING
+}
+
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  LATE
+}
+
+model User {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  password    String?
+  role        Role
+  costPerHour Float?
+  createdAt   DateTime @default(now())
+
+  projectUsers ProjectUser[]
+  timeLogs     TimeLog[]
+  reports      Report[]
+  ownedProjects Project[]
+  monthlyPayrolls MonthlyPayroll[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+
+  users       ProjectUser[]
+  timeLogs    TimeLog[]
+  reports     Report[]
+
+  createdAt   DateTime @default(now())
+}
+
+model ProjectUser {
+  id         String  @id @default(uuid())
+  userId     String
+  projectId  String
+  role       String
+  customRate Float?
+
+  user       User    @relation(fields: [userId], references: [id])
+  project    Project @relation(fields: [projectId], references: [id])
+
+  @@unique([userId, projectId])
+}
+
+model TimeLog {
+  id          String   @id @default(uuid())
+  userId      String
+  projectId   String
+  date        DateTime
+  hours       Float
+  description String
+
+  reportId    String?
+  report      Report?  @relation(fields: [reportId], references: [id])
+
+  user        User     @relation(fields: [userId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([projectId])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  userId      String
+  projectId   String
+  date        DateTime
+  status      ReportStatus
+
+  totalHours  Float
+  totalCost   Float?
+
+  submittedAt DateTime?
+  locked      Boolean  @default(false)
+
+  user        User     @relation(fields: [userId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id])
+  timeLogs    TimeLog[]
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, projectId, date])
+}
+
+model MonthlyPayroll {
+  id          String   @id @default(uuid())
+  userId      String
+  month       Int
+  year        Int
+  
+  totalHours  Float
+  lateHours   Float
+  totalAmount Float
+  status      String   @default("DRAFT")
+  notes       String?  @db.Text
+  
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, month, year])
+}
