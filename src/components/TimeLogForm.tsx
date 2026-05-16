@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Briefcase, FileText, Calendar, Loader2, ChevronDown, Check, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Briefcase, FileText, Calendar, Loader2 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 
 interface Project {
@@ -12,7 +12,7 @@ interface Project {
 interface TimeLogFormProps {
   userId: string;
   projects: Project[];
-  blockedDateKeys?: string[];
+  blockedDateKeys?: string[]; // kept for prop compat but unused — API rejects duplicates
   onLogAdded: () => void;
 }
 
@@ -23,117 +23,61 @@ const toDateKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function TimeLogForm({ userId, projects, blockedDateKeys = [], onLogAdded }: TimeLogFormProps) {
-  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [hours, setHours] = useState('');
-  const [description, setDescription] = useState('');
+export default function TimeLogForm({ userId, projects, onLogAdded }: TimeLogFormProps) {
   const today = new Date();
-  const dateCandidates = [0, 1, 2].map(offset => {
+  const dateCandidates = [0, 1, 2].map((offset) => {
     const d = new Date(today);
     d.setDate(today.getDate() - offset);
     return d;
   });
-  const availableDates = dateCandidates.filter(d => !blockedDateKeys.includes(toDateKey(d)));
-  const [date, setDate] = useState(availableDates[0] ? toDateKey(availableDates[0]) : '');
+
+  const [projectId, setProjectId] = useState(projects[0]?.id ?? '');
+  const [date, setDate] = useState(toDateKey(dateCandidates[0]));
+  const [hours, setHours] = useState('');
+  const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (availableDates.length === 0) {
-      setDate('');
-      return;
-    }
-
-    const selectedStillAvailable = availableDates.some(d => toDateKey(d) === date);
-    if (!selectedStillAvailable) {
-      setDate(toDateKey(availableDates[0]));
-    }
-  }, [availableDates, date]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const toggleProject = (id: string) => {
-    setSelectedProjectIds(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
-  };
-
-  const removeProject = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedProjectIds(prev => prev.filter(p => p !== id));
-  };
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
-    if (selectedProjectIds.length === 0 || !hours || !description || !date) {
-      setError('Please fill in all fields and select at least one project.');
+    if (!projectId || !hours || !description || !date) {
+      setError('Please fill in all fields.');
       return;
     }
 
     setIsLoading(true);
     try {
-      // Submit one time log per selected project — use allSettled so partial
-      // failures don't block successful ones.
-      const results = await Promise.allSettled(
-        selectedProjectIds.map(projectId =>
-          fetch('/api/time-logs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              projectId,
-              date,
-              hours: Number(hours),
-              description
-            })
-          }).then(async res => {
-            if (!res.ok) {
-              const data = await res.json();
-              const name = projects.find(p => p.id === projectId)?.name ?? projectId;
-              throw new Error(`${name}: ${data.error || 'Failed to log time'}`);
-            }
-            return res.json();
-          })
-        )
-      );
+      const res = await fetch('/api/time-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          projectId,
+          date,
+          hours: Number(hours),
+          description,
+        }),
+      });
 
-      const failures = results
-        .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-        .map(r => r.reason?.message ?? 'Unknown error');
-
-      const successCount = results.filter(r => r.status === 'fulfilled').length;
-
-      if (failures.length > 0) {
-        setError(failures.join('\n'));
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to log time');
+        return;
       }
 
-      if (successCount > 0) {
-        setHours('');
-        setDescription('');
-        setSelectedProjectIds([]);
-        onLogAdded();
-      }
+      setHours('');
+      setDescription('');
+      onLogAdded();
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const selectedProjects = projects.filter(p => selectedProjectIds.includes(p.id));
 
   return (
     <div className="glass-panel rounded-xl p-6 relative overflow-hidden">
@@ -164,112 +108,44 @@ export default function TimeLogForm({ userId, projects, blockedDateKeys = [], on
             <select
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              disabled={availableDates.length === 0}
-              className="w-full bg-[#1e293b] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-60"
+              className="w-full bg-[#1e293b] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             >
-              {availableDates.length === 0 ? (
-                <option value="">No available dates</option>
-              ) : (
-                availableDates.map((candidate) => {
-                  const key = toDateKey(candidate);
-                  return (
-                    <option key={key} value={key}>
-                      {candidate.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                    </option>
-                  );
-                })
-              )}
+              {dateCandidates.map((candidate) => {
+                const key = toDateKey(candidate);
+                return (
+                  <option key={key} value={key}>
+                    {candidate.toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
-          {/* Multi-select Project dropdown */}
-          <div className="space-y-2 relative" ref={dropdownRef}>
+          {/* Project */}
+          <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
               <Briefcase size={14} className="text-slate-400" />
-              Projects
-              {selectedProjectIds.length > 0 && (
-                <span className="ml-auto text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
-                  {selectedProjectIds.length} selected
-                </span>
-              )}
+              Project
             </label>
-
-            {/* Trigger button */}
-            <button
-              type="button"
-              onClick={() => setDropdownOpen(prev => !prev)}
-              className="w-full bg-[#1e293b] border border-white/10 rounded-lg px-3 py-2 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            >
-              <span className={selectedProjectIds.length === 0 ? 'text-slate-500 text-sm' : 'text-white text-sm'}>
-                {selectedProjectIds.length === 0
-                  ? 'Select projects...'
-                  : `${selectedProjectIds.length} project${selectedProjectIds.length > 1 ? 's' : ''} selected`}
-              </span>
-              <ChevronDown
-                size={16}
-                className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
-
-            {/* Dropdown list */}
-            {dropdownOpen && (
-              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-lg shadow-xl overflow-hidden">
-                {projects.length === 0 ? (
-                  <p className="px-3 py-3 text-sm text-slate-400">No projects assigned.</p>
-                ) : (
-                  <ul className="max-h-52 overflow-y-auto divide-y divide-white/5">
-                    {projects.map(p => {
-                      const isSelected = selectedProjectIds.includes(p.id);
-                      return (
-                        <li key={p.id}>
-                          <button
-                            type="button"
-                            onClick={() => toggleProject(p.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-colors ${
-                              isSelected
-                                ? 'bg-primary/15 text-white'
-                                : 'text-slate-300 hover:bg-white/5'
-                            }`}
-                          >
-                            <span
-                              className={`flex-shrink-0 w-4 h-4 rounded flex items-center justify-center border transition-colors ${
-                                isSelected
-                                  ? 'bg-primary border-primary'
-                                  : 'border-white/20 bg-transparent'
-                              }`}
-                            >
-                              {isSelected && <Check size={11} className="text-white" strokeWidth={3} />}
-                            </span>
-                            {p.name}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Selected project tags */}
-            {selectedProjects.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {selectedProjects.map(p => (
-                  <span
-                    key={p.id}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-medium"
-                  >
+            {projects.length === 0 ? (
+              <p className="text-sm text-slate-500 py-2">No projects assigned.</p>
+            ) : (
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="w-full bg-[#1e293b] border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
                     {p.name}
-                    <button
-                      type="button"
-                      onClick={(e) => removeProject(p.id, e)}
-                      className="hover:text-white transition-colors"
-                      aria-label={`Remove ${p.name}`}
-                    >
-                      <X size={10} strokeWidth={3} />
-                    </button>
-                  </span>
+                  </option>
                 ))}
-              </div>
+              </select>
             )}
           </div>
         </div>
@@ -307,15 +183,11 @@ export default function TimeLogForm({ userId, projects, blockedDateKeys = [], on
 
         <button
           type="submit"
-          disabled={isLoading || availableDates.length === 0}
+          disabled={isLoading || projects.length === 0}
           className="w-full py-2.5 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/25 mt-4 disabled:opacity-50"
         >
           {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Clock size={18} />}
-          {isLoading
-            ? 'Logging...'
-            : selectedProjectIds.length > 1
-              ? `Log Time for ${selectedProjectIds.length} Projects`
-              : 'Log Time'}
+          {isLoading ? 'Logging...' : 'Log Time'}
         </button>
       </form>
     </div>

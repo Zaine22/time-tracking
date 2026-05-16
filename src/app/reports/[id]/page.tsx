@@ -28,6 +28,7 @@ export default async function ReportViewPage({ params }: { params: { id: string 
       user: true,
       project: true,
       timeLogs: {
+        include: { project: true },
         orderBy: { createdAt: 'asc' }
       }
     }
@@ -74,8 +75,23 @@ export default async function ReportViewPage({ params }: { params: { id: string 
               </div>
               
               <div>
-                <span className="text-slate-400 text-sm flex items-center gap-2 mb-1"><Briefcase size={14} /> Project</span>
-                <p className="font-medium text-white">{targetReport.project.name}</p>
+                <span className="text-slate-400 text-sm flex items-center gap-2 mb-1"><Briefcase size={14} /> Projects</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {Array.from(
+                    new Map(
+                      targetReport.timeLogs
+                        .filter((l: any) => l.project)
+                        .map((l: any) => [l.project.id, l.project.name])
+                    ).entries()
+                  ).map(([pid, pname]) => (
+                    <span key={pid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-xs font-medium border border-primary/20">
+                      {pname}
+                    </span>
+                  ))}
+                  {targetReport.timeLogs.length === 0 && (
+                    <p className="font-medium text-white">{targetReport.project.name}</p>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -122,7 +138,15 @@ export default async function ReportViewPage({ params }: { params: { id: string 
                         <span className="text-xs uppercase font-semibold">HRS</span>
                       </div>
                       <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Task Description #{index + 1}</h4>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Task #{index + 1}</h4>
+                          {(log as any).project && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-xs font-medium border border-primary/20">
+                              <Briefcase size={10} />
+                              {(log as any).project.name}
+                            </span>
+                          )}
+                        </div>
                         <div 
                           className="text-white text-sm leading-relaxed prose prose-invert max-w-none [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>p]:mb-2 [&>strong]:font-bold [&>strong]:text-accent"
                           dangerouslySetInnerHTML={{ __html: log.description }}

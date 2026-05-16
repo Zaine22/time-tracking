@@ -57,8 +57,14 @@ export class ReportService {
       throw new Error('Submission window closed. Staff can submit reports within 48 hours only.');
     }
 
-    // Any submission after the report date itself is marked as LATE.
-    const status = submittedAt > reportDateEnd ? ReportStatus.LATE : ReportStatus.PENDING;
+    // Only mark LATE if the report date is today AND submitted after end of today.
+    // Submissions for yesterday or the day before are always PENDING — they are
+    // within the allowed 48-hour window and should not be penalised.
+    const todayUTC = new Date();
+    todayUTC.setUTCHours(0, 0, 0, 0);
+    const isToday = reportDate.getTime() === todayUTC.getTime();
+    const status =
+      isToday && submittedAt > reportDateEnd ? ReportStatus.LATE : ReportStatus.PENDING;
 
     // Create the report and link the time logs
     const report = await prisma.report.create({

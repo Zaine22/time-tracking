@@ -179,6 +179,7 @@ export default async function PayrollPage(
                 <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Status</th>
                 <th className="p-4 text-xs font-semibold text-slate-400 uppercase text-right">Final Payout</th>
                 {canManagePayroll && <th className="p-4 text-xs font-semibold text-slate-400 uppercase text-right">Actions</th>}
+                {isStaff && <th className="p-4 text-xs font-semibold text-slate-400 uppercase text-right">Details</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -227,11 +228,22 @@ export default async function PayrollPage(
                       </div>
                     </td>
                   )}
+                  {isStaff && (
+                    <td className="p-4 text-right">
+                      <Link
+                        href={`/payroll/${payroll.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary rounded-md transition-colors text-sm"
+                      >
+                        <Eye size={14} />
+                        View
+                      </Link>
+                    </td>
+                  )}
                 </tr>
               ))}
               {payrollList.length === 0 && (
                 <tr>
-                  <td colSpan={canManagePayroll ? 7 : 6} className="p-12 text-center text-slate-400">
+                  <td colSpan={canManagePayroll ? 7 : isStaff ? 7 : 6} className="p-12 text-center text-slate-400">
                     <p className="mb-2">No payroll records found for this filter.</p>
                     <p className="text-sm">Try changing month, user, or payment status.</p>
                   </td>

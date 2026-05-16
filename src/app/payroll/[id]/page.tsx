@@ -21,14 +21,21 @@ export default async function PayrollEditPage(
   if (!userId) redirect('/login');
 
   const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-  if (!currentUser || (currentUser.role !== 'SUPERADMIN' && currentUser.role !== 'ACCOUNTING' && currentUser.role !== 'ADMIN')) {
+  const isStaff = currentUser?.role === 'STAFF';
+  const canManage =
+    currentUser?.role === 'SUPERADMIN' ||
+    currentUser?.role === 'ACCOUNTING' ||
+    currentUser?.role === 'ADMIN';
+
+  if (!currentUser || (!canManage && !isStaff)) {
     redirect('/');
   }
 
   const { id } = await props.params;
   const searchParams = await props.searchParams;
-  const autoOpenCalculate = searchParams.mode === 'calculate';
-  const isViewMode = searchParams.mode === 'view';
+  const autoOpenCalculate = !isStaff && searchParams.mode === 'calculate';
+  // Staff always view-only; admins can toggle between view and edit
+  const isViewMode = isStaff || searchParams.mode === 'view';
 
   const targetPayroll = await prisma.monthlyPayroll.findUnique({
     where: { id },
@@ -38,6 +45,11 @@ export default async function PayrollEditPage(
   });
 
   if (!targetPayroll) {
+    redirect('/payroll');
+  }
+
+  // Staff can only view their own payroll record
+  if (isStaff && targetPayroll.userId !== currentUser.id) {
     redirect('/payroll');
   }
 
@@ -77,7 +89,9 @@ export default async function PayrollEditPage(
           </span>
         </div>
         <p className="text-slate-400 mt-1">
-          {isViewMode ? 'Review payroll details and report breakdown for this record.' : 'Adjust final payout amounts and update payment status.'}
+          {isViewMode
+            ? 'Review payroll details and report breakdown for this period.'
+            : 'Adjust final payout amounts and update payment status.'}
         </p>
       </div>
 
@@ -114,9 +128,38 @@ export default async function PayrollEditPage(
           </div>
         </div>
 
-        {/* Edit Form */}
+        {/* Edit Form — hidden for staff (view-only) */}
         <div className="lg:col-span-2">
-          <PayrollEditForm payroll={targetPayroll} autoOpenCalculate={autoOpenCalculate} readOnly={isViewMode} />
+          {!isStaff ? (
+            <PayrollEditForm payroll={targetPayroll} autoOpenCalculate={autoOpenCalculate} readOnly={isViewMode} />
+          ) : (
+            // Staff sees a clean summary card instead of the edit form
+            <div className="glass-panel rounded-xl p-6 space-y-4">
+              <h2 className="text-lg font-bold border-b border-white/5 pb-3">Payout Summary</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 rounded-lg p-4">
+                  <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Total Hours</p>
+                  <p className="text-2xl font-bold text-white">{targetPayroll.totalHours} <span className="text-sm font-normal text-slate-400">hrs</span></p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-4">
+                  <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Final Payout</p>
+                  <p className="text-2xl font-bold text-accent">${targetPayroll.totalAmount.toFixed(2)}</p>
+                </div>
+                {targetPayroll.lateHours > 0 && (
+                  <div className="bg-warning/5 border border-warning/20 rounded-lg p-4 col-span-2">
+                    <p className="text-warning text-xs uppercase font-semibold mb-1">Late Hours (50% rate)</p>
+                    <p className="text-lg font-bold text-warning">{targetPayroll.lateHours} hrs</p>
+                  </div>
+                )}
+                {targetPayroll.notes && (
+                  <div className="bg-white/5 rounded-lg p-4 col-span-2">
+                    <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Notes</p>
+                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{targetPayroll.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

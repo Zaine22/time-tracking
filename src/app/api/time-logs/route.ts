@@ -5,8 +5,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { userId, projectId, date, hours, description } = body;
-    const logDate = new Date(date);
 
+    if (!projectId) {
+      return NextResponse.json({ error: 'A project must be selected.' }, { status: 400 });
+    }
+
+    const logDate = new Date(date);
     if (Number.isNaN(logDate.getTime())) {
       return NextResponse.json({ error: 'Invalid date provided' }, { status: 400 });
     }
@@ -30,16 +34,11 @@ export async function POST(req: NextRequest) {
 
     // Validate the user is assigned to this project
     const assignment = await prisma.projectUser.findUnique({
-      where: {
-        userId_projectId: {
-          userId,
-          projectId
-        }
-      }
+      where: { userId_projectId: { userId, projectId } },
     });
 
     if (!assignment) {
-      return NextResponse.json({ error: 'User is not assigned to this project' }, { status: 403 });
+      return NextResponse.json({ error: 'You are not assigned to this project.' }, { status: 403 });
     }
 
     // Enforce one time log per user per project per calendar day
@@ -52,16 +51,22 @@ export async function POST(req: NextRequest) {
       where: {
         userId,
         projectId,
-        date: {
-          gte: dayStart,
-          lte: dayEnd,
-        },
+        date: { gte: dayStart, lte: dayEnd },
       },
     });
 
     if (existing) {
+      const projectName =
+        (await prisma.project.findUnique({ where: { id: projectId }, select: { name: true } }))
+          ?.name ?? 'this project';
       return NextResponse.json(
-        { error: `You already submitted a record for this project on ${logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.` },
+        {
+          error: `You already have a time log for ${projectName} on ${logDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}.`,
+        },
         { status: 409 }
       );
     }
@@ -72,12 +77,13 @@ export async function POST(req: NextRequest) {
         projectId,
         date: new Date(date),
         hours: Number(hours),
-        description
-      }
+        description,
+      },
     });
 
     return NextResponse.json(timeLog, { status: 201 });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: 'Failed to create time log' }, { status: 500 });
   }
 }

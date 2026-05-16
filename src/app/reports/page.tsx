@@ -57,7 +57,11 @@ export default async function ReportsPage(
     where: finalWhere,
     include: {
       user: true,
-      project: true
+      project: true,
+      timeLogs: {
+        include: { project: true },
+        distinct: ['projectId'],
+      }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -91,7 +95,7 @@ export default async function ReportsPage(
               <tr className="bg-white/[0.02] border-b border-white/5">
                 <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Report Date</th>
                 <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Staff Member</th>
-                <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Project</th>
+                <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Projects</th>
                 <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Total Hours</th>
                 <th className="p-4 text-xs font-semibold text-slate-400 uppercase">Status</th>
                 {isAdminOrAccounting && (
@@ -107,7 +111,16 @@ export default async function ReportsPage(
                   </td>
                   <td className="p-4 text-sm text-slate-300">{report.user.name}</td>
                   <td className="p-4 text-sm text-slate-300">
-                    <span className="px-2 py-1 bg-white/5 rounded text-xs">{report.project.name}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {(report as any).timeLogs.length > 0
+                        ? (report as any).timeLogs.map((log: any) => (
+                            <span key={log.project.id} className="px-2 py-0.5 bg-white/5 rounded text-xs whitespace-nowrap">
+                              {log.project.name}
+                            </span>
+                          ))
+                        : <span className="px-2 py-0.5 bg-white/5 rounded text-xs">{report.project.name}</span>
+                      }
+                    </div>
                   </td>
                   <td className="p-4 text-sm font-medium">{report.totalHours} hrs</td>
                   <td className="p-4 text-sm">

@@ -49,20 +49,10 @@ export default async function CreateTimeLogPage() {
   const endOfToday = new Date(startOfToday);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const existingReports = await prisma.report.findMany({
-    where: {
-      userId: currentUser.id,
-      date: {
-        gte: minAllowedDate,
-        lte: endOfToday,
-      },
-    },
-    select: {
-      date: true,
-    },
-  });
+  // Dates are never blocked at page level — each project can be logged once per day.
+  // The API enforces the per-user+project+day uniqueness and returns a friendly error.
+  const blockedDateKeys: string[] = [];
 
-  const blockedDateKeys = Array.from(new Set(existingReports.map((report) => toDateKey(new Date(report.date)))));
 
   return (
     <DashboardLayout userName={currentUser.name} role={currentUser.role}>
