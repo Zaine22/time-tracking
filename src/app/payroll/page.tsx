@@ -98,7 +98,7 @@ export default async function PayrollPage(
         <div className="glass-panel rounded-xl p-6 col-span-1 md:col-span-3 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20 flex justify-between items-center">
           <div>
             <h3 className="text-slate-300 font-medium text-sm mb-1">Total Monthly Payout</h3>
-            <p className="text-4xl font-bold text-white">${grandTotal.toFixed(2)}</p>
+            <p className="text-4xl font-bold text-white">{grandTotal.toFixed(2)} MMK</p>
           </div>
           <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary">
             <DollarSign size={32} />
@@ -206,7 +206,7 @@ export default async function PayrollPage(
                     </span>
                   </td>
                   <td className="p-4 text-right text-lg font-bold text-accent">
-                    ${payroll.totalAmount.toFixed(2)}
+                    {payroll.totalAmount.toFixed(2)} MMK
                   </td>
                   {canManagePayroll && (
                     <td className="p-4 text-right">

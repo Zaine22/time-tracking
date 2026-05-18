@@ -105,7 +105,7 @@ export default async function PayrollEditPage(
               <div>
                 <span className="text-slate-400 text-sm flex items-center gap-2 mb-1"><User size={14} /> Staff Member</span>
                 <p className="font-medium text-white">{targetPayroll.user.name}</p>
-                <p className="text-xs text-slate-400">Base Rate: ${targetPayroll.user.costPerHour?.toFixed(2) || '0.00'}/hr</p>
+                <p className="text-xs text-slate-400">Base Rate: {targetPayroll.user.costPerHour?.toFixed(2) || '0.00'} MMK/hr</p>
               </div>
               
               <div>
@@ -143,7 +143,7 @@ export default async function PayrollEditPage(
                 </div>
                 <div className="bg-white/5 rounded-lg p-4">
                   <p className="text-slate-400 text-xs uppercase font-semibold mb-1">Final Payout</p>
-                  <p className="text-2xl font-bold text-accent">${targetPayroll.totalAmount.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-accent">{targetPayroll.totalAmount.toFixed(2)} MMK</p>
                 </div>
                 {targetPayroll.lateHours > 0 && (
                   <div className="bg-warning/5 border border-warning/20 rounded-lg p-4 col-span-2">
@@ -196,7 +196,7 @@ export default async function PayrollEditPage(
                     </span>
                   </td>
                   <td className="p-4 text-sm text-right text-accent font-medium">
-                    {report.totalCost !== null ? `$${report.totalCost.toFixed(2)}` : '-'}
+                    {report.totalCost !== null ? `${report.totalCost.toFixed(2)} MMK` : '-'}
                   </td>
                 </tr>
               ))}

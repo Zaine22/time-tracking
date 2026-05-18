@@ -90,7 +90,7 @@ export function PayrollEditForm({ payroll, autoOpenCalculate = false, readOnly =
         notes: data.payroll?.notes ?? prev.notes
       }));
       setSuccess(
-        `Calculated: ${data.workedDays} day(s), ${Number(data.totalHours).toFixed(2)} hours, total $${Number(data.totalAmount).toFixed(2)}.`
+        `Calculated: ${data.workedDays} day(s), ${Number(data.totalHours).toFixed(2)} hours, total ${Number(data.totalAmount).toFixed(2)} MMK.`
       );
       router.refresh();
     } catch (err: any) {
@@ -167,7 +167,7 @@ export function PayrollEditForm({ payroll, autoOpenCalculate = false, readOnly =
         {success && <div className="p-3 bg-success/10 text-success text-sm rounded-lg">{success}</div>}
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">Final Payout Amount ($)</label>
+          <label className="text-sm font-medium text-slate-300">Final Payout Amount (MMK)</label>
           <input
             type="number"
             step="0.01"
@@ -201,7 +201,7 @@ export function PayrollEditForm({ payroll, autoOpenCalculate = false, readOnly =
             disabled={readOnly}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[100px] resize-none disabled:opacity-60"
-            placeholder="e.g., Added $50 performance bonus for this month."
+            placeholder="e.g., Added 50,000 MMK performance bonus for this month."
           />
         </div>
 

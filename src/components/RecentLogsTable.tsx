@@ -4,10 +4,7 @@ import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, AlertCircle, Clock, FileWarning, Send } from 'lucide-react';
 
-const stripHtml = (html: string) => {
-  if (!html) return '';
-  return html.replace(/<[^>]*>?/gm, '');
-};
+import { stripHtml } from '@/lib/utils';
 
 interface TimeLog {
   id: string;

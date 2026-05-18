@@ -85,7 +85,17 @@ export async function POST(req: NextRequest) {
     const month = monthStart.getMonth() + 1;
     const year = monthStart.getFullYear();
 
-    const payroll = await prisma.monthlyPayroll.upsert({
+    const existingPayroll = await prisma.monthlyPayroll.findUnique({
+      where: {
+        userId_month_year: { userId, month, year }
+      }
+    });
+
+    if (!existingPayroll) {
+      return NextResponse.json({ error: 'Payroll record not found. A report must be approved first.' }, { status: 404 });
+    }
+
+    const payroll = await prisma.monthlyPayroll.update({
       where: {
         userId_month_year: {
           userId,
@@ -93,7 +103,7 @@ export async function POST(req: NextRequest) {
           year
         }
       },
-      update: {
+      data: {
         totalHours,
         lateHours,
         totalAmount,
@@ -102,29 +112,9 @@ export async function POST(req: NextRequest) {
           `Recalculated to ${rangeEnd.toISOString().slice(0, 10)}.`,
           `Worked days: ${workedDays}.`,
           `Total hours: ${totalHours.toFixed(2)}.`,
-          `Rate: $${baseRate.toFixed(2)}/hr.`,
-          `Base: $${baseAmount.toFixed(2)}.`,
-          `Adjustment: $${numericAdjustment.toFixed(2)}.`,
-          notes?.trim() ? `Note: ${notes.trim()}` : ''
-        ]
-          .filter(Boolean)
-          .join(' ')
-      },
-      create: {
-        userId,
-        month,
-        year,
-        totalHours,
-        lateHours,
-        totalAmount,
-        status: 'DRAFT',
-        notes: [
-          `Calculated to ${rangeEnd.toISOString().slice(0, 10)}.`,
-          `Worked days: ${workedDays}.`,
-          `Total hours: ${totalHours.toFixed(2)}.`,
-          `Rate: $${baseRate.toFixed(2)}/hr.`,
-          `Base: $${baseAmount.toFixed(2)}.`,
-          `Adjustment: $${numericAdjustment.toFixed(2)}.`,
+          `Rate: ${baseRate.toFixed(2)} MMK/hr.`,
+          `Base: ${baseAmount.toFixed(2)} MMK.`,
+          `Adjustment: ${numericAdjustment.toFixed(2)} MMK.`,
           notes?.trim() ? `Note: ${notes.trim()}` : ''
         ]
           .filter(Boolean)

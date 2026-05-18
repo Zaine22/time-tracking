@@ -25,6 +25,7 @@ export default async function CreateTimeLogPage() {
   const currentUser = await prisma.user.findUnique({ 
     where: { id: userId },
     include: {
+      ownedProjects: { take: 1 },
       projectUsers: {
         include: {
           project: true
@@ -34,6 +35,10 @@ export default async function CreateTimeLogPage() {
   });
   
   if (!currentUser || (currentUser.role !== 'STAFF' && currentUser.role !== 'ADMIN')) {
+    redirect('/');
+  }
+
+  if (currentUser.ownedProjects && currentUser.ownedProjects.length > 0) {
     redirect('/');
   }
 

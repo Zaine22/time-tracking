@@ -159,7 +159,7 @@ export function UserForm({ initialData }: UserFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">Cost per Hour ($)</label>
+          <label className="text-sm font-medium text-slate-300">Cost per Hour (MMK)</label>
           <input
             type="number"
             step="0.01"

@@ -89,12 +89,11 @@ export default async function SuperAdminDashboard({
           title="Pending Reports"
           value={pendingReportsCount}
           icon={FileText}
-          trend={{ value: 5, isPositive: false }}
           className="bg-gradient-to-br from-white/[0.05] to-white/[0.01]"
         />
         <MetricCard
           title="Total Payouts"
-          value={`$${totalCost.toFixed(2)}`}
+          value={`${totalCost.toFixed(2)} MMK`}
           icon={DollarSign}
           className="bg-gradient-to-br from-primary/20 to-accent/20 border-primary/20"
         />
@@ -127,7 +126,7 @@ export default async function SuperAdminDashboard({
                   <td className="p-4 text-sm font-medium">{report.user.name}</td>
                   <td className="p-4 text-sm">{report.project.name}</td>
                   <td className="p-4 text-sm">{report.totalHours}</td>
-                  <td className="p-4 text-sm">${report.totalCost?.toFixed(2) || '0.00'}</td>
+                  <td className="p-4 text-sm">{report.totalCost?.toFixed(2) || '0.00'} MMK</td>
                   <td className="p-4 text-sm">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
                       report.status === 'APPROVED' ? 'bg-success/10 text-success border-success/20' :

@@ -68,7 +68,7 @@ export default async function UsersPage() {
                     </span>
                   </td>
                   <td className="p-4 text-sm font-medium text-accent">
-                    ${user.costPerHour?.toFixed(2) || '0.00'}
+                    {user.costPerHour?.toFixed(2) || '0.00'} MMK
                   </td>
                   <td className="p-4 text-right">
                     <Link 

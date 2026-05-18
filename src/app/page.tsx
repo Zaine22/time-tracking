@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import DashboardLayout from '@/components/DashboardLayout';
 import MetricCard from '@/components/MetricCard';
 import SuperAdminDashboard from '@/components/SuperAdminDashboard';
+import OwnerDashboard from '@/components/OwnerDashboard';
 import { RecentLogsClientWrapper } from '@/components/RecentLogsClientWrapper';
 import { Clock, Briefcase, FileText } from 'lucide-react';
 
@@ -30,7 +31,8 @@ export default async function DashboardPage(
         include: {
           project: true
         }
-      }
+      },
+      ownedProjects: true
     }
   });
 
@@ -43,6 +45,11 @@ export default async function DashboardPage(
   // Route to the specific dashboard based on role
   if (user.role === 'SUPERADMIN') {
     return <SuperAdminDashboard user={user} searchParams={searchParams} />;
+  }
+
+  // Project Owner Dashboard
+  if (user.ownedProjects && user.ownedProjects.length > 0) {
+    return <OwnerDashboard user={user} />;
   }
 
   // Default Staff / Admin Dashboard
