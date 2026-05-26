@@ -43,7 +43,7 @@ export default async function DashboardPage(
   }
 
   // Route to the specific dashboard based on role
-  if (user.role === 'SUPERADMIN') {
+  if (user.role === 'SUPERADMIN' || user.role === 'ACCOUNTING') {
     return <SuperAdminDashboard user={user} searchParams={searchParams} />;
   }
 

@@ -15,9 +15,11 @@ export default async function ProjectsPage() {
   if (!userId) redirect('/login');
 
   const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-  if (!currentUser || (currentUser.role !== 'SUPERADMIN' && currentUser.role !== 'ADMIN')) {
+  if (!currentUser || !['SUPERADMIN', 'ADMIN', 'ACCOUNTING'].includes(currentUser.role)) {
     redirect('/');
   }
+
+  const isViewOnly = currentUser.role === 'ACCOUNTING';
 
   const allProjects = await prisma.project.findMany({
     include: {
@@ -35,17 +37,21 @@ export default async function ProjectsPage() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Briefcase className="text-primary" size={28} />
-            Manage Projects
+            {isViewOnly ? 'View Projects' : 'Manage Projects'}
           </h1>
-          <p className="text-slate-400 mt-1">View projects and manage their staff.</p>
+          <p className="text-slate-400 mt-1">
+            {isViewOnly ? 'View all projects and their details.' : 'View projects and manage their staff.'}
+          </p>
         </div>
-        <Link 
-          href="/projects/create" 
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
-        >
-          <Plus size={18} />
-          Add New Project
-        </Link>
+        {!isViewOnly && (
+          <Link 
+            href="/projects/create" 
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+          >
+            <Plus size={18} />
+            Add New Project
+          </Link>
+        )}
       </div>
 
       <div className="glass-panel rounded-xl overflow-hidden">
@@ -90,7 +96,7 @@ export default async function ProjectsPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-md transition-colors text-sm"
                     >
                       <Settings2 size={14} />
-                      Manage
+                      {isViewOnly ? 'View' : 'Manage'}
                     </Link>
                   </td>
                 </tr>

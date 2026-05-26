@@ -85,6 +85,13 @@ export default function DashboardLayoutClient({
             </>
           )}
 
+          {role === 'ACCOUNTING' && (
+            <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${pathname === '/projects' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+              <Briefcase size={18} />
+              View Projects
+            </Link>
+          )}
+
           {((role === 'SUPERADMIN' || role === 'ACCOUNTING' || role === 'ADMIN' || role === 'STAFF') && !isProjectOwner) && (
             <Link href="/payroll" className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${pathname?.startsWith('/payroll') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
               <Calculator size={18} />

@@ -32,7 +32,20 @@ export async function GET() {
       }
     });
 
-    // 3. Create or Update Staff User
+    // 3. Create or Update Accounting User
+    const accounting = await prisma.user.upsert({
+      where: { email: 'accounting@example.com' },
+      update: { password: defaultPassword },
+      create: {
+        name: 'Finance Manager',
+        email: 'accounting@example.com',
+        password: defaultPassword,
+        role: Role.ACCOUNTING,
+        costPerHour: 30.0
+      }
+    });
+
+    // 4. Create or Update Staff User
     const staff = await prisma.user.upsert({
       where: { email: 'staff@example.com' },
       update: { password: defaultPassword },
@@ -76,10 +89,12 @@ export async function GET() {
       credentials: {
         superadmin: 'superadmin@example.com / password123',
         admin: 'admin@example.com / password123',
+        accounting: 'accounting@example.com / password123',
         staff: 'staff@example.com / password123',
       },
       superadminId: superadmin.id,
       adminId: admin.id,
+      accountingId: accounting.id,
       staffId: staff.id,
       projectId: project.id
     });
