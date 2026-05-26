@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { CheckCircle2, AlertCircle, Clock, FileWarning, Send } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Clock, FileWarning, Send, Edit2 } from 'lucide-react';
 import Link from 'next/link';
-
 import { stripHtml } from '@/lib/utils';
 
 interface TimeLog {
@@ -23,23 +21,23 @@ interface TimeLog {
 interface LogGroup {
   dateKey: string;
   date: string;
-  totalHours: number; // sum of all project logs for this day
+  totalHours: number;
   description: string;
   projects: { id: string; name: string }[];
   reportId: string | null;
   reportStatus: string | null;
-  /** projectId of first log — used for report submission */
   firstProjectId: string;
   firstLogDate: string;
+  logs: TimeLog[]; // Individual logs for this date
 }
 
-interface RecentLogsTableProps {
+interface RecentLogsTableWithEditProps {
   logs: TimeLog[];
   userId: string;
   onReportSubmitted: () => void;
 }
 
-export default function RecentLogsTable({ logs, userId, onReportSubmitted }: RecentLogsTableProps) {
+export default function RecentLogsTableWithEdit({ logs, userId, onReportSubmitted }: RecentLogsTableWithEditProps) {
   const [submittingDate, setSubmittingDate] = useState<string | null>(null);
 
   // ── Group logs by calendar date ─────────────────────────────────────────────
@@ -59,17 +57,18 @@ export default function RecentLogsTable({ logs, userId, onReportSubmitted }: Rec
         reportStatus: log.report?.status ?? null,
         firstProjectId: log.project.id,
         firstLogDate: log.date,
+        logs: [],
       });
     }
 
     const group = groupMap.get(dateKey)!;
-    group.totalHours += log.hours; // accumulate each project's hours
+    group.totalHours += log.hours;
+    group.logs.push(log);
 
     if (!group.projects.find((p) => p.id === log.project.id)) {
       group.projects.push({ id: log.project.id, name: log.project.name });
     }
 
-    // Propagate report status if any log in the group has one
     if (log.reportId && !group.reportId) {
       group.reportId = log.reportId;
       group.reportStatus = log.report?.status ?? null;
@@ -79,6 +78,22 @@ export default function RecentLogsTable({ logs, userId, onReportSubmitted }: Rec
   const groups = Array.from(groupMap.values()).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
+
+  // ── Check if a log can be edited ────────────────────────────────────────────
+  const canEditLog = (log: TimeLog) => {
+    if (log.reportId) return false;
+    
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const minAllowedDate = new Date(startOfToday);
+    minAllowedDate.setDate(minAllowedDate.getDate() - 2);
+
+    const logDay = new Date(log.date);
+    logDay.setHours(0, 0, 0, 0);
+
+    return logDay >= minAllowedDate;
+  };
 
   // ── Status badge ────────────────────────────────────────────────────────────
   const getStatusBadge = (group: LogGroup) => {
@@ -145,7 +160,6 @@ export default function RecentLogsTable({ logs, userId, onReportSubmitted }: Rec
     }
   };
 
-
   return (
     <div className="glass-panel rounded-xl overflow-hidden flex flex-col h-full">
       <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
@@ -160,7 +174,7 @@ export default function RecentLogsTable({ logs, userId, onReportSubmitted }: Rec
           <thead>
             <tr className="bg-white/[0.02] border-b border-white/5">
               <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
-              <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Projects</th>
+              <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Project</th>
               <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Hours</th>
               <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
               <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
@@ -183,54 +197,82 @@ export default function RecentLogsTable({ logs, userId, onReportSubmitted }: Rec
                 const canSubmit = !group.reportId;
 
                 return (
-                  <tr key={group.dateKey} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="p-4 text-sm font-medium whitespace-nowrap">
-                      {new Date(group.date).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td className="p-4 text-sm">
-                      <div className="flex flex-wrap gap-1">
-                        {group.projects.map((p) => (
-                          <span
-                            key={p.id}
-                            className="px-2 py-0.5 bg-white/5 rounded text-slate-300 text-xs whitespace-nowrap"
-                          >
-                            {p.name}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm font-bold text-white whitespace-nowrap">
-                      {group.totalHours}
-                    </td>
-                    <td
-                      className="p-4 text-sm text-slate-300 max-w-xs truncate"
-                      title={stripHtml(group.description)}
-                    >
-                      {stripHtml(group.description)}
-                    </td>
-                    <td className="p-4 whitespace-nowrap">{getStatusBadge(group)}</td>
-                    <td className="p-4 whitespace-nowrap text-right">
-                      {canSubmit && (
-                        <button
-                          onClick={() => submitReport(group)}
-                          disabled={isSubmitting}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary/20 hover:bg-primary/30 text-primary rounded-md transition-colors disabled:opacity-50"
-                        >
-                          {isSubmitting ? (
-                            'Submitting...'
-                          ) : (
-                            <>
-                              Submit Report <Send size={12} />
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                  <React.Fragment key={group.dateKey}>
+                    {/* Date header row */}
+                    <tr className="bg-white/[0.01]">
+                      <td colSpan={6} className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium text-slate-300">
+                            {new Date(group.date).toLocaleDateString(undefined, {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })} - Total: {group.totalHours} hours
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(group)}
+                            {canSubmit && (
+                              <button
+                                onClick={() => submitReport(group)}
+                                disabled={isSubmitting}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary/20 hover:bg-primary/30 text-primary rounded-md transition-colors disabled:opacity-50"
+                              >
+                                {isSubmitting ? (
+                                  'Submitting...'
+                                ) : (
+                                  <>
+                                    Submit Report <Send size={12} />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    {/* Individual log rows */}
+                    {group.logs.map((log) => {
+                      const canEdit = canEditLog(log);
+                      
+                      return (
+                        <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="p-4 text-sm font-medium whitespace-nowrap pl-8">
+                            {new Date(log.date).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td className="p-4 text-sm">
+                            <span className="px-2 py-0.5 bg-white/5 rounded text-slate-300 text-xs whitespace-nowrap">
+                              {log.project.name}
+                            </span>
+                          </td>
+                          <td className="p-4 text-sm font-bold text-white whitespace-nowrap">
+                            {log.hours}
+                          </td>
+                          <td className="p-4 text-sm text-slate-300 max-w-xs truncate" title={stripHtml(log.description)}>
+                            {stripHtml(log.description)}
+                          </td>
+                          <td className="p-4 whitespace-nowrap">
+                            {/* Empty for individual rows */}
+                          </td>
+                          <td className="p-4 whitespace-nowrap text-right">
+                            {canEdit && (
+                              <Link
+                                href={`/time-logs/${log.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary/20 hover:bg-primary/30 text-primary rounded-md transition-colors"
+                              >
+                                <Edit2 size={12} />
+                                Edit
+                              </Link>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 );
               })
             )}

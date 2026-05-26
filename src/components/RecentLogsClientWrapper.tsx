@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import RecentLogsTable from './RecentLogsTable';
+import RecentLogsTableWithEdit from './RecentLogsTableWithEdit';
 
 export function RecentLogsClientWrapper({ logs, userId }: { logs: any[], userId: string }) {
   const router = useRouter();
@@ -11,5 +11,5 @@ export function RecentLogsClientWrapper({ logs, userId }: { logs: any[], userId:
     router.refresh();
   };
 
-  return <RecentLogsTable logs={logs} userId={userId} onReportSubmitted={handleReportSubmitted} />;
+  return <RecentLogsTableWithEdit logs={logs} userId={userId} onReportSubmitted={handleReportSubmitted} />;
 }
