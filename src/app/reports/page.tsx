@@ -27,6 +27,7 @@ export default async function ReportsPage(
   // Parse filters
   const filterUserId = typeof searchParams?.userId === 'string' ? searchParams.userId : undefined;
   const filterDateStr = typeof searchParams?.date === 'string' ? searchParams.date : undefined;
+  const filterStatus = typeof searchParams?.status === 'string' ? searchParams.status : undefined;
 
   let dateFilter = {};
   if (filterDateStr) {
@@ -41,11 +42,16 @@ export default async function ReportsPage(
   }
 
   // Base where clause depends on role
-  let baseWhere = isAdminOrAccounting ? {} : { userId: currentUser.id };
+  const baseWhere: Record<string, unknown> = isAdminOrAccounting ? {} : { userId: currentUser.id };
   
   // Apply explicit filters if present
   if (filterUserId && isAdminOrAccounting) {
-    baseWhere = { ...baseWhere, userId: filterUserId };
+    baseWhere.userId = filterUserId;
+  }
+
+  // Apply status filter if present
+  if (filterStatus) {
+    baseWhere.status = filterStatus;
   }
   
   const finalWhere = {
@@ -67,7 +73,11 @@ export default async function ReportsPage(
   });
 
   const allUsers = isAdminOrAccounting 
-    ? await prisma.user.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, role: true } })
+    ? await prisma.user.findMany({ 
+        where: { role: { notIn: ['SUPERADMIN', 'ADMIN'] } },
+        orderBy: { name: 'asc' }, 
+        select: { id: true, name: true, role: true } 
+      })
     : [];
 
   return (
@@ -112,8 +122,8 @@ export default async function ReportsPage(
                   <td className="p-4 text-sm text-slate-300">{report.user.name}</td>
                   <td className="p-4 text-sm text-slate-300">
                     <div className="flex flex-wrap gap-1">
-                      {(report as any).timeLogs.length > 0
-                        ? (report as any).timeLogs.map((log: any) => (
+                      {report.timeLogs.length > 0
+                        ? report.timeLogs.map((log) => (
                             <span key={log.project.id} className="px-2 py-0.5 bg-white/5 rounded text-xs whitespace-nowrap">
                               {log.project.name}
                             </span>

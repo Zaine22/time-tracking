@@ -15,6 +15,7 @@ export function ReportFilters({ users }: ReportFiltersProps) {
 
   const currentUserId = searchParams.get('userId') || '';
   const currentDate = searchParams.get('date') || '';
+  const currentStatus = searchParams.get('status') || '';
 
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -37,11 +38,15 @@ export function ReportFilters({ users }: ReportFiltersProps) {
     router.push(pathname + '?' + createQueryString('date', e.target.value));
   };
 
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    router.push(pathname + '?' + createQueryString('status', e.target.value));
+  };
+
   const clearFilters = () => {
     router.push(pathname);
   };
 
-  const hasFilters = currentUserId !== '' || currentDate !== '';
+  const hasFilters = currentUserId !== '' || currentDate !== '' || currentStatus !== '';
 
   return (
     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 p-4 bg-white/[0.02] border-b border-white/5">
@@ -68,6 +73,18 @@ export function ReportFilters({ users }: ReportFiltersProps) {
           onChange={handleDateChange}
           className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm w-full sm:w-[160px]"
         />
+
+        <select
+          value={currentStatus}
+          onChange={handleStatusChange}
+          className="bg-[#1e293b] border border-white/10 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm flex-1 max-w-[200px]"
+        >
+          <option value="">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="LATE">Late</option>
+        </select>
 
         {hasFilters && (
           <button
